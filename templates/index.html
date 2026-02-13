@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Content Creator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>✨ AI Content Creator</h1>
+            <p>Your assistant for Blogs, Emails, and Video Scripts</p>
+        </header>
+        
+        <div class="chat-container">
+            <div id="chat-box" class="chat-box">
+                <div class="message ai-message">
+                    <div class="message-content">
+                        Hello! I can help you create content. What would you like to create today?
+                    </div>
+                </div>
+            </div>
+            
+            <div class="input-area">
+                <input type="text" id="user-input" placeholder="Type your request here..." autocomplete="off">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        const userInput = document.getElementById('user-input');
+
+        // Allow Enter key to send
+        userInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // Add User Message to Chat
+            addMessage(message, 'user-message');
+            userInput.value = '';
+            
+            // Show loading...
+            const loadingId = addMessage('Thinking...', 'ai-message', true);
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+                
+                // Remove loading message
+                removeMessage(loadingId);
+
+                if (data.status === 'success') {
+                    addMessage(data.response, 'ai-message');
+                } else {
+                    addMessage('Error: ' + data.error, 'ai-message error');
+                }
+
+            } catch (error) {
+                removeMessage(loadingId);
+                addMessage('Network Error: ' + error, 'ai-message error');
+            }
+        }
+
+        function addMessage(text, className, isLoading = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${className}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            // Format newlines as <br>
+            contentDiv.innerHTML = text.replace(/\n/g, '<br>');
+            
+            messageDiv.appendChild(contentDiv);
+            chatBox.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            if (isLoading) {
+                const id = 'msg-' + Date.now();
+                messageDiv.id = id;
+                return id;
+            }
+        }
+
+        function removeMessage(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+    </script>
+</body>
+</html>
